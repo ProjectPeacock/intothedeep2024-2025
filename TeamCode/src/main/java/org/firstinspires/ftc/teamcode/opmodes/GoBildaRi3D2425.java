@@ -58,7 +58,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
  */
 
 
-@TeleOp(name="goBILDA Robot in 3 Days 24-25", group="Robot")
+@TeleOp(name="goBILDA Robot in 3 Days", group="Robot")
 //@Disabled
 public class GoBildaRi3D2425 extends LinearOpMode {
 
