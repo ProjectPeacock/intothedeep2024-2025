@@ -151,7 +151,6 @@ public class GoBildaRi3D2425 extends LinearOpMode {
         double rotate;
         double max;
 
-
         /* Define and Initialize Motors */
         leftFrontDrive  = hardwareMap.dcMotor.get("frontLeftMotor");
         leftBackDrive   = hardwareMap.dcMotor.get("backLeftMotor");
@@ -304,6 +303,7 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 //liftPosition = LIFT_COLLAPSED;
                 wrist.setPosition(WRIST_FOLDED_OUT);
                 intake.setPower(INTAKE_COLLECT);
+
             }
 
             else if (gamepad1.b){
@@ -326,7 +326,7 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 armPosition = ARM_COLLAPSED_INTO_ROBOT;
                 //liftPosition = LIFT_COLLAPSED;
                 intake.setPower(INTAKE_OFF);
-                wrist.setPosition(WRIST_FOLDED_IN);
+                wrist.setPosition(WRIST_FOLDED_OUT);
             }
 
             else if (gamepad1.dpad_right){
@@ -335,14 +335,14 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 wrist.setPosition(WRIST_FOLDED_IN);
             }
 
-            else if (gamepad1.dpad_up){
+            else if (gamepad2.dpad_up){
                 /* This sets the arm to vertical to hook onto the LOW RUNG for hanging */
                 armPosition = ARM_ATTACH_HANGING_HOOK;
                 intake.setPower(INTAKE_OFF);
                 wrist.setPosition(WRIST_FOLDED_IN);
             }
 
-            else if (gamepad1.dpad_down){
+            else if (gamepad2.dpad_down){
                 /* this moves the arm down to lift the robot up once it has been hooked */
                 armPosition = ARM_WINCH_ROBOT;
                 intake.setPower(INTAKE_OFF);
