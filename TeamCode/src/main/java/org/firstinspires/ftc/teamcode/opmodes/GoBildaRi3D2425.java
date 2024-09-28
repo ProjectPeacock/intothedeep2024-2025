@@ -35,6 +35,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
+import org.firstinspires.ftc.teamcode.hardware.HWProfile;
+
 /*
  * This is (mostly) the OpMode used in the goBILDA Robot in 3 Days for the 24-25 Into The Deep FTC Season.
  * https://youtube.com/playlist?list=PLpytbFEB5mLcWxf6rOHqbmYjDi9BbK00p&si=NyQLwyIkcZvZEirP (playlist of videos)
@@ -62,82 +64,19 @@ import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 //@Disabled
 public class GoBildaRi3D2425 extends LinearOpMode {
 
-    /* Declare OpMode members. */
-    public DcMotor  leftFrontDrive   = null; //the left drivetrain motor
-    public DcMotor  rightFrontDrive  = null; //the right drivetrain motor
-    public DcMotor  leftBackDrive    = null;
-    public DcMotor  rightBackDrive   = null;
-    public DcMotor  armMotor         = null; //the arm motor
-    public DcMotor  liftMotor        = null; //
-    public DcMotor  hangMotor        = null;
-    public CRServo  intake           = null; //the active intake servo
-    public Servo    wrist            = null; //the wrist servo
+    private final static HWProfile robot = new HWProfile();
 
-
-    /* This constant is the number of encoder ticks for each degree of rotation of the arm.
-    To find this, we first need to consider the total gear reduction powering our arm.
-    First, we have an external 20t:100t (5:1) reduction created by two spur gears.
-    But we also have an internal gear reduction in our motor.
-    The motor we use for this arm is a 117RPM Yellow Jacket. Which has an internal gear
-    reduction of ~50.9:1. (more precisely it is 250047/4913:1)
-    We can multiply these two ratios together to get our final reduction of ~254.47:1.
-    The motor's encoder counts 28 times per rotation. So in total you should see about 7125.16
-    counts per rotation of the arm. We divide that by 360 to get the counts per degree. */
-    final double ARM_TICKS_PER_DEGREE =
-            28 // number of encoder ticks per rotation of the bare motor
-                    * 250047.0 / 4913.0 // This is the exact gear ratio of the 50.9:1 Yellow Jacket gearbox
-                    * 100.0 / 20.0 // This is the external gear reduction, a 20T pinion gear that drives a 100T hub-mount gear
-                    * 1/360.0; // we want ticks per degree, not per rotation
-
-
-    /* These constants hold the position that the arm is commanded to run to.
-    These are relative to where the arm was located when you start the OpMode. So make sure the
-    arm is reset to collapsed inside the robot before you start the program.
-
-    In these variables you'll see a number in degrees, multiplied by the ticks per degree of the arm.
-    This results in the number of encoder ticks the arm needs to move in order to achieve the ideal
-    set position of the arm. For example, the ARM_SCORE_SAMPLE_IN_LOW is set to
-    160 * ARM_TICKS_PER_DEGREE. This asks the arm to move 160° from the starting position.
-    If you'd like it to move further, increase that number. If you'd like it to not move
-    as far from the starting position, decrease it. */
-
-    final double ARM_COLLAPSED_INTO_ROBOT  = 0;
-    final double ARM_COLLECT               = 0 * ARM_TICKS_PER_DEGREE;
-    final double ARM_CLEAR_BARRIER         = 15 * ARM_TICKS_PER_DEGREE;
-    final double ARM_SCORE_SPECIMEN        = 90 * ARM_TICKS_PER_DEGREE;
-    final double ARM_SCORE_SAMPLE_IN_LOW   = 90 * ARM_TICKS_PER_DEGREE;
-    final double ARM_ATTACH_HANGING_HOOK   = 110 * ARM_TICKS_PER_DEGREE;
-    final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
-
-    /* Variables to store the speed the intake servo should be set at to intake, and deposit game elements. */
-    final double INTAKE_COLLECT    = -1.0;
-    final double INTAKE_OFF        =  0.0;
-    final double INTAKE_DEPOSIT    =  0.5;
-
-    /* Variables to store the positions that the wrist should be set to when folding in, or folding out. */
-    final double WRIST_FOLDED_IN   = 0.1667;
-    final double WRIST_FOLDED_OUT  = 0.5;
-
-    /* A number in degrees that the triggers can adjust the arm position by */
-    final double FUDGE_FACTOR = 15 * ARM_TICKS_PER_DEGREE;
-
-    /* Variables that are used to set the arm to a specific position */
-    double armPosition = (int)ARM_COLLAPSED_INTO_ROBOT;
-    double armPositionFudgeFactor;
-
-    final double LIFT_TICKS_PER_MM = (111132.0 / 289.0) / 120.0;
-
-    final double LIFT_COLLAPSED = 0 * LIFT_TICKS_PER_MM;
-    final double LIFT_SCORING_IN_LOW_BASKET = 0 * LIFT_TICKS_PER_MM;
-    final double LIFT_SCORING_IN_HIGH_BASKET = 480 * LIFT_TICKS_PER_MM;
-
-    double liftPosition = LIFT_COLLAPSED;
+    double liftPosition = robot.LIFT_COLLAPSED;
 
     double cycletime = 0;
     double looptime = 0;
     double oldtime = 0;
 
     double armLiftComp = 0;
+
+    /* Variables that are used to set the arm to a specific position */
+    double armPosition = (int)robot.ARM_COLLAPSED_INTO_ROBOT;
+    double armPositionFudgeFactor;
 
 
     @Override
@@ -151,61 +90,6 @@ public class GoBildaRi3D2425 extends LinearOpMode {
         double rotate;
         double max;
 
-        /* Define and Initialize Motors */
-        leftFrontDrive  = hardwareMap.dcMotor.get("frontLeftMotor");
-        leftBackDrive   = hardwareMap.dcMotor.get("backLeftMotor");
-        rightFrontDrive = hardwareMap.dcMotor.get("frontRightMotor");
-        rightBackDrive  = hardwareMap.dcMotor.get("backRightMotor");
-        liftMotor       = hardwareMap.dcMotor.get("liftMotor");
-        armMotor        = hardwareMap.get(DcMotor.class, "left_arm"); //the arm motor
-        hangMotor       = hardwareMap.dcMotor.get("hangMotor");
-
-
-       /*
-       we need to reverse the left side of the drivetrain so it doesn't turn when we ask all the
-       drive motors to go forward.
-        */
-
-        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-
-        /* Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to slow down
-        much faster when it is coasting. This creates a much more controllable drivetrain. As the robot
-        stops much quicker. */
-        leftFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        hangMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-        /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
-        ((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
-
-
-        /* Before starting the armMotor. We'll make sure the TargetPosition is set to 0.
-        Then we'll set the RunMode to RUN_TO_POSITION. And we'll ask it to stop and reset encoder.
-        If you do not have the encoder plugged into this motor, it will not run in this code. */
-        armMotor.setTargetPosition(0);
-        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        liftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        liftMotor.setTargetPosition(0);
-        liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        /* Define and initialize servos.*/
-        intake = hardwareMap.get(CRServo.class, "intake");
-        wrist  = hardwareMap.get(Servo.class, "wrist");
-
-        /* Make sure that the intake is off, and the wrist is folded in. */
-        intake.setPower(INTAKE_OFF);
-        wrist.setPosition(WRIST_FOLDED_OUT);
-
-        /* Send telemetry message to signify robot waiting */
-        telemetry.addLine("Robot Ready.");
-        telemetry.update();
         // Retrieve the IMU from the hardware map
         IMU imu = hardwareMap.get(IMU.class, "imu");
         // Adjust the orientation parameters to match your robot
@@ -214,6 +98,14 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 RevHubOrientationOnRobot.UsbFacingDirection.LEFT));
         // Without this, the REV Hub's orientation is assumed to be logo up / USB forward
         imu.initialize(parameters);
+
+        robot.init(hardwareMap);
+        telemetry.addData("Status:", "Initialized");
+        telemetry.update();
+
+        /* Send telemetry message to signify robot waiting */
+        telemetry.addLine("Robot Ready.");
+        telemetry.update();
         /* Wait for the game driver to press play */
         waitForStart();
 
@@ -248,10 +140,10 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             double frontRightPower = (rotY - rotX - rx) / denominator;
             double backRightPower = (rotY + rotX - rx) / denominator;
 
-            leftFrontDrive.setPower(frontLeftPower);
-            leftBackDrive.setPower(backLeftPower);
-            rightFrontDrive.setPower(frontRightPower);
-            rightBackDrive.setPower(backRightPower);
+            robot.leftFrontDrive.setPower(frontLeftPower);
+            robot.leftBackDrive.setPower(backLeftPower);
+            robot.rightFrontDrive.setPower(frontRightPower);
+            robot.rightBackDrive.setPower(backRightPower);
 
 
             /* Here we handle the three buttons that have direct control of the intake speed.
@@ -269,13 +161,13 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             one cycle. Which can cause strange behavior. */
 
             if (gamepad1.left_bumper) {
-                intake.setPower(INTAKE_COLLECT);
+                robot.intake.setPower(robot.INTAKE_COLLECT);
             }
             else if (gamepad1.right_bumper) {
-                intake.setPower(INTAKE_OFF);
+                robot.intake.setPower(robot.INTAKE_OFF);
             }
             else if (gamepad1.y) {
-                intake.setPower(INTAKE_DEPOSIT);
+                robot.intake.setPower(robot.INTAKE_DEPOSIT);
             }
 
 
@@ -287,7 +179,7 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             than the other, it "wins out". This variable is then multiplied by our FUDGE_FACTOR.
             The FUDGE_FACTOR is the number of degrees that we can adjust the arm by with this function. */
 
-            armPositionFudgeFactor = FUDGE_FACTOR * (gamepad2.right_trigger + (-gamepad2.left_trigger));
+            armPositionFudgeFactor = robot.FUDGE_FACTOR * (gamepad2.right_trigger + (-gamepad2.left_trigger));
 
 
             /* Here we implement a set of if else statements to set our arm to different scoring positions.
@@ -299,54 +191,54 @@ public class GoBildaRi3D2425 extends LinearOpMode {
 
             if(gamepad1.a){
                 /* This is the intaking/collecting arm position */
-                armPosition = ARM_COLLECT;
+                armPosition = robot.ARM_COLLECT;
                 //liftPosition = LIFT_COLLAPSED;
-                wrist.setPosition(WRIST_FOLDED_OUT);
-                intake.setPower(INTAKE_COLLECT);
+                robot.wrist.setPosition(robot.WRIST_FOLDED_OUT);
+                robot.intake.setPower(robot.INTAKE_COLLECT);
 
             }
 
             else if (gamepad1.b){
-                    /* This is about 20° up from the collecting position to clear the barrier
+                    /*This is about 20° up from the collecting position to clear the barrier
                     Note here that we don't set the wrist position or the intake power when we
                     select this "mode", this means that the intake and wrist will continue what
                     they were doing before we clicked left bumper. */
-                armPosition = ARM_CLEAR_BARRIER;
+                armPosition = robot.ARM_CLEAR_BARRIER;
             }
 
             else if (gamepad1.x){
                 /* This is the correct height to score the sample in the HIGH BASKET */
-                armPosition = ARM_SCORE_SAMPLE_IN_LOW;
+                armPosition = robot.ARM_SCORE_SAMPLE_IN_LOW;
                 //liftPosition = LIFT_SCORING_IN_HIGH_BASKET;
             }
 
             else if (gamepad1.dpad_left) {
                     /* This turns off the intake, folds in the wrist, and moves the arm
                     back to folded inside the robot. This is also the starting configuration */
-                armPosition = ARM_COLLAPSED_INTO_ROBOT;
+                armPosition = robot.ARM_COLLAPSED_INTO_ROBOT;
                 //liftPosition = LIFT_COLLAPSED;
-                intake.setPower(INTAKE_OFF);
-                wrist.setPosition(WRIST_FOLDED_OUT);
+                robot.intake.setPower(robot.INTAKE_OFF);
+                robot.wrist.setPosition(robot.WRIST_FOLDED_OUT);
             }
 
             else if (gamepad1.dpad_right){
                 /* This is the correct height to score SPECIMEN on the HIGH CHAMBER */
-                armPosition = ARM_SCORE_SPECIMEN;
-                wrist.setPosition(WRIST_FOLDED_IN);
+                armPosition = robot.ARM_SCORE_SPECIMEN;
+                robot.wrist.setPosition(robot.WRIST_FOLDED_IN);
             }
 
             else if (gamepad2.dpad_up){
                 /* This sets the arm to vertical to hook onto the LOW RUNG for hanging */
-                armPosition = ARM_ATTACH_HANGING_HOOK;
-                intake.setPower(INTAKE_OFF);
-                wrist.setPosition(WRIST_FOLDED_IN);
+                armPosition = robot.ARM_ATTACH_HANGING_HOOK;
+                robot.intake.setPower(robot.INTAKE_OFF);
+                robot.wrist.setPosition(robot.WRIST_FOLDED_IN);
             }
 
             else if (gamepad2.dpad_down){
                 /* this moves the arm down to lift the robot up once it has been hooked */
-                armPosition = ARM_WINCH_ROBOT;
-                intake.setPower(INTAKE_OFF);
-                wrist.setPosition(WRIST_FOLDED_IN);
+                armPosition = robot.ARM_WINCH_ROBOT;
+                robot.intake.setPower(robot.INTAKE_OFF);
+                robot.wrist.setPosition(robot.WRIST_FOLDED_IN);
             }
 
             /*
@@ -364,7 +256,7 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             to a value.
              */
 
-            if (armPosition < 45 * ARM_TICKS_PER_DEGREE){
+            if (armPosition < 45 * robot.ARM_TICKS_PER_DEGREE){
                 armLiftComp = (0.25568 * liftPosition);
             }
             else{
@@ -376,10 +268,10 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             our armLiftComp, which adjusts the arm height for different lift extensions.
             We also set the target velocity (speed) the motor runs at, and use setMode to run it.*/
 
-            armMotor.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
+            robot.armMotor.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-            ((DcMotorEx) armMotor).setVelocity(2100);
-            armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            ((DcMotorEx) robot.armMotor).setVelocity(2100);
+            robot.armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
             /* Here we set the lift position based on the driver input.
@@ -410,22 +302,22 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             /*here we check to see if the lift is trying to go higher than the maximum extension.
              *if it is, we set the variable to the max.
              */
-            if (liftPosition > LIFT_SCORING_IN_HIGH_BASKET){
-                liftPosition = LIFT_SCORING_IN_HIGH_BASKET;
+            if (liftPosition > robot.LIFT_SCORING_IN_HIGH_BASKET){
+                liftPosition = robot.LIFT_SCORING_IN_HIGH_BASKET;
             }
             //same as above, we see if the lift is trying to go below 0, and if it is, we set it to 0.
             if (liftPosition < 0){
                 liftPosition = 0;
             }
 
-            liftMotor.setTargetPosition((int) (liftPosition));
+            robot.liftMotor.setTargetPosition((int) (liftPosition));
 
-            ((DcMotorEx) liftMotor).setVelocity(2100);
-            liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            ((DcMotorEx) robot.liftMotor).setVelocity(2100);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
-            if (((DcMotorEx) armMotor).isOverCurrent()){
+            if (((DcMotorEx) robot.armMotor).isOverCurrent()){
                 telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
             }
 
@@ -433,7 +325,7 @@ public class GoBildaRi3D2425 extends LinearOpMode {
              * it didn't end up working... But here's the code we run it with. It just sets the motor
              * power to match the inverse of the left stick y.
              */
-            hangMotor.setPower(-gamepad2.left_stick_y);
+            robot.hangMotor.setPower(-gamepad2.left_stick_y);
 
             /* This is how we check our loop time. We create three variables:
             looptime is the current time when we hit this part of the code
@@ -452,12 +344,12 @@ public class GoBildaRi3D2425 extends LinearOpMode {
 
 
             /* send telemetry to the driver of the arm's current position and target position */
-            telemetry.addData("arm Target Position: ", armMotor.getTargetPosition());
-            telemetry.addData("arm Encoder: ", armMotor.getCurrentPosition());
+            telemetry.addData("arm Target Position: ", robot.armMotor.getTargetPosition());
+            telemetry.addData("arm Encoder: ", robot.armMotor.getCurrentPosition());
             telemetry.addData("lift variable", liftPosition);
-            telemetry.addData("Lift Target Position",liftMotor.getTargetPosition());
-            telemetry.addData("lift current position", liftMotor.getCurrentPosition());
-            telemetry.addData("liftMotor Current:",((DcMotorEx) liftMotor).getCurrent(CurrentUnit.AMPS));
+            telemetry.addData("Lift Target Position",robot.liftMotor.getTargetPosition());
+            telemetry.addData("lift current position", robot.liftMotor.getCurrentPosition());
+            telemetry.addData("liftMotor Current:",((DcMotorEx) robot.liftMotor).getCurrent(CurrentUnit.AMPS));
             telemetry.update();
 
 
