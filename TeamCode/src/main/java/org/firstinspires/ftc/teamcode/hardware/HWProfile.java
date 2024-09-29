@@ -90,6 +90,7 @@ public class HWProfile {
     }
 
     public void init(HardwareMap hwmap) {
+
         /* Define and Initialize Motors */
         leftFrontDrive  = hwmap.dcMotor.get("frontLeftMotor");
         leftBackDrive   = hwmap.dcMotor.get("backLeftMotor");
@@ -107,6 +108,11 @@ public class HWProfile {
 
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
+
+        leftFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         /* Setting zeroPowerBehavior to BRAKE enables a "brake mode". This causes the motor to slow down
         much faster when it is coasting. This creates a much more controllable drivetrain. As the robot
@@ -141,9 +147,6 @@ public class HWProfile {
         /* Make sure that the intake is off, and the wrist is folded in. */
         intake.setPower(INTAKE_OFF);
         wrist.setPosition(WRIST_FOLDED_OUT);
-
-
-
 
     }
 }
