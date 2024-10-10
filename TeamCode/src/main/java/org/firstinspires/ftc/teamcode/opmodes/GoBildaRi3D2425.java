@@ -191,8 +191,8 @@ public class GoBildaRi3D2425 extends LinearOpMode {
 
             if(gamepad1.a){
                 /* This is the intaking/collecting arm position */
-                armPosition = robot.ARM_COLLECT;
-                //liftPosition = LIFT_COLLAPSED;
+                armPosition = robot.ARM_HIGH_SCORE;
+                liftPosition = robot.LIFT_COLLAPSED;
                 robot.wrist.setPosition(robot.WRIST_FOLDED_OUT);
                 robot.intake.setPower(robot.INTAKE_COLLECT);
 
@@ -268,10 +268,10 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             our armLiftComp, which adjusts the arm height for different lift extensions.
             We also set the target velocity (speed) the motor runs at, and use setMode to run it.*/
 
-            robot.armMotor.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
+            //robot.armMotor.setTargetPosition((int) (armPosition + armPositionFudgeFactor + armLiftComp));
 
-            ((DcMotorEx) robot.armMotor).setVelocity(2100);
-            robot.armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            //((DcMotorEx) robot.armMotor).setVelocity(2100);
+            //robot.armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
 
             /* Here we set the lift position based on the driver input.
@@ -294,10 +294,12 @@ public class GoBildaRi3D2425 extends LinearOpMode {
              */
 
             if (gamepad2.right_bumper){
-                liftPosition += 2800 * cycletime;
+                liftPosition += 5;
+//                liftPosition += 2800 * cycletime;
             }
             else if (gamepad2.left_bumper){
-                liftPosition -= 2800 * cycletime;
+                liftPosition -= 5;
+//                liftPosition -= 2800 * cycletime;
             }
             /*here we check to see if the lift is trying to go higher than the maximum extension.
              *if it is, we set the variable to the max.
@@ -310,22 +312,29 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 liftPosition = 0;
             }
 
-            robot.liftMotor.setTargetPosition((int) (liftPosition));
+            robot.hangMotor.setTargetPosition((int) armPosition);
+//            robot.liftMotor.setTargetPosition((int) liftPosition);
+            robot.liftMotor.setTargetPosition(350);
 
-            ((DcMotorEx) robot.liftMotor).setVelocity(2100);
-            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.hangMotor.setPower(1);
+            robot.liftMotor.setPower(1);
 
 
             /* Check to see if our arm is over the current limit, and report via telemetry. */
-            if (((DcMotorEx) robot.armMotor).isOverCurrent()){
-                telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
-            }
+           // if (((DcMotorEx) robot.armMotor).isOverCurrent()){
+             //   telemetry.addLine("MOTOR EXCEEDED CURRENT LIMIT!");
 
             /* at the very end of the stream, we added a linear actuator kit to try to hang the robot on.
              * it didn't end up working... But here's the code we run it with. It just sets the motor
              * power to match the inverse of the left stick y.
              */
-            robot.hangMotor.setPower(-gamepad2.left_stick_y);
+
+            if(gamepad2.left_stick_y > 0){
+                armPosition =- 1;
+            } else if (gamepad2.left_stick_y < 0){
+                armPosition =+ 1;
+            }
+//            robot.hangMotor.setPower(-gamepad2.left_stick_y);
 
             /* This is how we check our loop time. We create three variables:
             looptime is the current time when we hit this part of the code
@@ -344,15 +353,13 @@ public class GoBildaRi3D2425 extends LinearOpMode {
 
 
             /* send telemetry to the driver of the arm's current position and target position */
-            telemetry.addData("arm Target Position: ", robot.armMotor.getTargetPosition());
-            telemetry.addData("arm Encoder: ", robot.armMotor.getCurrentPosition());
+            //telemetry.addData("arm Target Position: ", robot.armMotor.getTargetPosition());
+            //telemetry.addData("arm Encoder: ", robot.armMotor.getCurrentPosition());
             telemetry.addData("lift variable", liftPosition);
             telemetry.addData("Lift Target Position",robot.liftMotor.getTargetPosition());
             telemetry.addData("lift current position", robot.liftMotor.getCurrentPosition());
             telemetry.addData("liftMotor Current:",((DcMotorEx) robot.liftMotor).getCurrent(CurrentUnit.AMPS));
             telemetry.update();
-
-
 
         }
     }

@@ -21,7 +21,7 @@ public class HWProfile {
     public DcMotor  rightFrontDrive  = null; //the right drivetrain motor
     public DcMotor  leftBackDrive    = null;
     public DcMotor  rightBackDrive   = null;
-    public DcMotor  armMotor         = null; //the arm motor
+   // public DcMotor  armMotor         = null; //the arm motor
     public DcMotor  liftMotor        = null; //
     public DcMotor  hangMotor        = null;
     public CRServo  intake           = null; //the active intake servo
@@ -59,11 +59,14 @@ public class HWProfile {
 
     public final double ARM_COLLAPSED_INTO_ROBOT  = 0;
     public final double ARM_COLLECT               = 0 * ARM_TICKS_PER_DEGREE;
-    public final double ARM_CLEAR_BARRIER         = 15 * ARM_TICKS_PER_DEGREE;
-    public final double ARM_SCORE_SPECIMEN        = 90 * ARM_TICKS_PER_DEGREE;
+    public final int ARM_CLEAR_BARRIER         = 150;
+//    public final double ARM_CLEAR_BARRIER         = 15 * ARM_TICKS_PER_DEGREE;
+    public final int ARM_SCORE_SPECIMEN        = 300;
+//    public final double ARM_SCORE_SPECIMEN        = 90 * ARM_TICKS_PER_DEGREE;
     public final double ARM_SCORE_SAMPLE_IN_LOW   = 90 * ARM_TICKS_PER_DEGREE;
     public final double ARM_ATTACH_HANGING_HOOK   = 110 * ARM_TICKS_PER_DEGREE;
     public final double ARM_WINCH_ROBOT           = 10  * ARM_TICKS_PER_DEGREE;
+    public final int ARM_HIGH_SCORE           = 700;
 
     /* Variables to store the speed the intake servo should be set at to intake, and deposit game elements. */
     public final double INTAKE_COLLECT    = -1.0;
@@ -97,7 +100,7 @@ public class HWProfile {
         rightFrontDrive = hwmap.dcMotor.get("frontRightMotor");
         rightBackDrive  = hwmap.dcMotor.get("backRightMotor");
         liftMotor       = hwmap.dcMotor.get("liftMotor");
-        armMotor        = hwmap.get(DcMotor.class, "left_arm"); //the arm motor
+        //armMotor        = hwmap.get(DcMotor.class, "left_arm"); //the arm motor
         hangMotor       = hwmap.dcMotor.get("hangMotor");
 
 
@@ -121,19 +124,21 @@ public class HWProfile {
         rightFrontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         hangMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        hangMotor.setTargetPosition(0);
+        hangMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         /*This sets the maximum current that the control hub will apply to the arm before throwing a flag */
-        ((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
+        //((DcMotorEx) armMotor).setCurrentAlert(5,CurrentUnit.AMPS);
 
 
         /* Before starting the armMotor. We'll make sure the TargetPosition is set to 0.
         Then we'll set the RunMode to RUN_TO_POSITION. And we'll ask it to stop and reset encoder.
         If you do not have the encoder plugged into this motor, it will not run in this code. */
-        armMotor.setTargetPosition(0);
-        armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        //armMotor.setTargetPosition(0);
+        //armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        //armMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         liftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         liftMotor.setTargetPosition(0);
