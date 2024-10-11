@@ -241,6 +241,14 @@ public class GoBildaRi3D2425 extends LinearOpMode {
                 robot.wrist.setPosition(robot.WRIST_FOLDED_IN);
             }
 
+            else if (gamepad2.y) {
+                liftPosition = robot.LIFT_SCORING_IN_HIGH_BASKET;
+            }
+
+            else if (gamepad2.a) {
+                liftPosition = 0;
+            }
+
             /*
             This is probably my favorite piece of code on this robot. It's a clever little software
             solution to a problem the robot has.
@@ -293,28 +301,19 @@ public class GoBildaRi3D2425 extends LinearOpMode {
             we are only incrementing it a small amount each cycle.
              */
 
-            if (gamepad2.right_bumper){
-                liftPosition += 5;
+            // If the button is pressed and liftPosition is not surpassing the range it should be in, then liftPosition is changed accordingly.
+            if (gamepad2.right_bumper && (liftPosition + 20) < robot.LIFT_SCORING_IN_HIGH_BASKET ){
+                liftPosition += 20;
 //                liftPosition += 2800 * cycletime;
             }
-            else if (gamepad2.left_bumper){
-                liftPosition -= 5;
+            else if (gamepad2.left_bumper && (liftPosition - 20) > 0){
+                liftPosition -= 20;
 //                liftPosition -= 2800 * cycletime;
             }
-            /*here we check to see if the lift is trying to go higher than the maximum extension.
-             *if it is, we set the variable to the max.
-             */
-            if (liftPosition > robot.LIFT_SCORING_IN_HIGH_BASKET){
-                liftPosition = robot.LIFT_SCORING_IN_HIGH_BASKET;
-            }
-            //same as above, we see if the lift is trying to go below 0, and if it is, we set it to 0.
-            if (liftPosition < 0){
-                liftPosition = 0;
-            }
+
 
             robot.hangMotor.setTargetPosition((int) armPosition);
-//            robot.liftMotor.setTargetPosition((int) liftPosition);
-            robot.liftMotor.setTargetPosition(350);
+            robot.liftMotor.setTargetPosition((int) liftPosition);
 
             robot.hangMotor.setPower(1);
             robot.liftMotor.setPower(1);
